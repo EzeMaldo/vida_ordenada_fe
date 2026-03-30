@@ -1,0 +1,57 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-bg-primary: #060D09;
+  --color-bg-secondary: #040808;
+  --color-bg-tertiary: #030606;
+  --color-surface-card: #0F1610;
+  --color-surface-elevated: #141E15;
+  --color-glass-bg: rgba(255,255,255,0.06);
+  --color-glass-border: rgba(255,255,255,0.12);
+  --color-green-primary: #2ECC71;
+  --color-green-bright: #00FF88;
+  --color-green-btn: #00B050;
+  --color-green-dim: #0D2415;
+  --color-green-glow: rgba(46,204,113,0.25);
+  --color-green-soft: rgba(46,204,113,0.12);
+  --color-red-primary: #FF4D6D;
+  --color-red-dim: #26100F;
+  --color-red-soft: rgba(255,77,109,0.12);
+  --color-yellow-primary: #FFD60A;
+  --color-yellow-dim: #1A1500;
+  --color-yellow-soft: rgba(255,214,10,0.10);
+  --color-blue-primary: #48CAE4;
+  --color-blue-dim: #001318;
+  --color-blue-soft: rgba(72,202,228,0.10);
+  --color-text-primary: #FFFFFF;
+  --color-text-secondary: rgba(255,255,255,0.55);
+  --color-text-muted: rgba(255,255,255,0.28);
+  --font-family-sans: 'Inter', sans-serif;
+  --shadow-glass: 0 4px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08);
+  --shadow-green: 0 0 20px rgba(46,204,113,0.3);
+  --shadow-card: 0 2px 16px rgba(0,0,0,0.5);
+  --backdrop-blur-glass: 12px;
+}
+
+body {
+  background-color: #060D09;
+  color: #ffffff;
+  font-family: 'Inter', sans-serif;
+}
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: #060D09; }
+::-webkit-scrollbar-thumb { background: rgba(46,204,113,0.3); border-radius: 2px; }
+
+.glass-card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  backdrop-filter: blur(12px);
+}
+
+.glass-card-elevated {
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.12);
+  backdrop-filter: blur(16px);
+}
