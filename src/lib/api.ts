@@ -2,7 +2,9 @@ import axios from "axios";
 import { getAccessToken, getRefreshToken, saveTokens, clearTokens } from "./auth";
 import { SyncPullResponse, SyncPushItem, SyncPushResult, AuthTokens } from "@/types";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://vidaordenada-production.up.railway.app";
+// En dev y prod usamos el proxy de Next.js (/api/backend/*) para evitar CORS.
+// Next.js reenvía server-side al backend real.
+const BASE_URL = "/api/backend";
 
 export const api = axios.create({ baseURL: BASE_URL });
 
@@ -20,7 +22,7 @@ api.interceptors.response.use(
       original._retry = true;
       try {
         const refresh = getRefreshToken();
-        const { data } = await axios.post<{ accessToken: string }>(`${BASE_URL}/auth/refresh`, { refreshToken: refresh });
+        const { data } = await axios.post<{ accessToken: string }>(`/api/backend/auth/refresh`, { refreshToken: refresh });
         const user = JSON.parse(localStorage.getItem("vo_user") || "{}");
         saveTokens({ accessToken: data.accessToken, refreshToken: refresh!, userId: user.userId, name: user.name });
         original.headers.Authorization = `Bearer ${data.accessToken}`;
