@@ -4,12 +4,12 @@ export function formatPesos(amount: number): string {
   const value = abs / 100;
   if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`;
   if (value >= 1_000) return `$${(value / 1_000).toFixed(0)}K`;
-  return `$${value.toLocaleString("es-AR")}`;
+  return `$${value.toLocaleString("es-AR", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
 }
 
 export function formatPesosFull(amount: number): string {
   const value = Math.abs(amount) / 100;
-  return `$${value.toLocaleString("es-AR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+  return `$${value.toLocaleString("es-AR", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
 }
 
 export function formatDate(timestamp: number): string {
