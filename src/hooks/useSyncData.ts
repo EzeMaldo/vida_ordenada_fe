@@ -21,11 +21,15 @@ export function useSyncData() {
   }, []);
 
   const sync = useCallback(async () => {
+    console.log("[VidaSync] sync() disparado");
     setSyncing(true);
     try {
       const result = await doSync();
       setData(result);
       setLastSync(result.lastSync);
+      console.log("[VidaSync] sync() ✓ UI actualizada");
+    } catch (err) {
+      console.error("[VidaSync] sync() falló", err);
     } finally {
       setSyncing(false);
     }
