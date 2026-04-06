@@ -16,7 +16,9 @@ export function useSyncData() {
 
   useEffect(() => {
     load();
-  }, [load]);
+    sync();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const sync = useCallback(async () => {
     setSyncing(true);
