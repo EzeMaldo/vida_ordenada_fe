@@ -74,12 +74,25 @@ export interface FixedExpenseDto {
   deletedAt?: number;
 }
 
+export interface ChallengeDto {
+  id: string;
+  title: string;
+  emoji: string;
+  description: string;
+  isCompleted: boolean;
+  isCustom: boolean;
+  createdAt: number;
+  updatedAt: number;
+  deletedAt?: number;
+}
+
 export interface SyncPullResponse {
   transactions: TransactionDto[];
   accounts: AccountDto[];
   categories: CategoryDto[];
   savingsGoals: SavingsGoalDto[];
   fixedExpenses: FixedExpenseDto[];
+  challenges: ChallengeDto[];
   serverTime: number;
 }
 
@@ -103,5 +116,6 @@ export interface SyncData {
   categories: CategoryDto[];
   savingsGoals: SavingsGoalDto[];
   fixedExpenses: FixedExpenseDto[];
+  challenges: ChallengeDto[];
   lastSync: number;
 }

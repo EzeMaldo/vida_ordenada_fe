@@ -1,76 +1,61 @@
 "use client";
 import { useState } from "react";
 import { Trophy, CheckCircle, Circle, Plus, X } from "lucide-react";
-
-interface Challenge {
-  id: string;
-  title: string;
-  emoji: string;
-  description: string;
-  completed: boolean;
-  isCustom: boolean;
-}
-
-const PRESETS: Challenge[] = [
-  { id: "1", title: "Sin delivery por 7 días", emoji: "🥗", description: "Cociná en casa todos los días de la semana", completed: false, isCustom: false },
-  { id: "2", title: "Semana sin cafetería", emoji: "☕", description: "Preparate el café en casa por 7 días", completed: false, isCustom: false },
-  { id: "3", title: "Día sin gastos", emoji: "🚫", description: "Pasá un día completo sin gastar ni un peso", completed: false, isCustom: false },
-  { id: "4", title: "Ahorrá el 10% del sueldo", emoji: "💰", description: "Destiná el 10% de tus ingresos al ahorro este mes", completed: false, isCustom: false },
-  { id: "5", title: "Revisá tus suscripciones", emoji: "📋", description: "Cancelá al menos 1 suscripción que no usás", completed: false, isCustom: false },
-  { id: "6", title: "Mes sin compras impulsivas", emoji: "🛒", description: "30 días sin compras no planificadas", completed: false, isCustom: false },
-];
-
-const STORAGE_KEY = "vo_challenges";
-
-function loadChallenges(): Challenge[] {
-  if (typeof window === "undefined") return PRESETS;
-  const raw = localStorage.getItem(STORAGE_KEY);
-  return raw ? JSON.parse(raw) : PRESETS;
-}
-
-function saveChallenges(challenges: Challenge[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(challenges));
-}
+import { useSyncData } from "@/hooks/useSyncData";
+import { pushSync } from "@/lib/api";
+import { ChallengeDto } from "@/types";
 
 export default function ChallengesPage() {
-  const [challenges, setChallenges] = useState<Challenge[]>(() => loadChallenges());
+  const { data, sync } = useSyncData();
+  const challenges: ChallengeDto[] = data?.challenges || [];
+
   const [showAdd, setShowAdd] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newEmoji, setNewEmoji] = useState("🎯");
   const [newDesc, setNewDesc] = useState("");
 
-  const update = (updated: Challenge[]) => {
-    setChallenges(updated);
-    saveChallenges(updated);
+  const completed = challenges.filter((c) => c.isCompleted);
+  const pending   = challenges.filter((c) => !c.isCompleted);
+
+  const toggle = async (c: ChallengeDto) => {
+    await pushSync([{
+      operation: "UPDATE",
+      entityType: "challenge",
+      clientId: Date.now(),
+      serverId: c.id,
+      payload: JSON.stringify({ title: c.title, emoji: c.emoji, description: c.description, isCompleted: !c.isCompleted, isCustom: c.isCustom }),
+    }]);
+    await sync();
   };
 
-  const toggle = (id: string) => {
-    update(challenges.map((c) => c.id === id ? { ...c, completed: !c.completed } : c));
+  const remove = async (c: ChallengeDto) => {
+    await pushSync([{
+      operation: "DELETE",
+      entityType: "challenge",
+      clientId: Date.now(),
+      serverId: c.id,
+      payload: "{}",
+    }]);
+    await sync();
   };
 
-  const remove = (id: string) => {
-    update(challenges.filter((c) => c.id !== id));
-  };
-
-  const addCustom = () => {
+  const addCustom = async () => {
     if (!newTitle.trim()) return;
-    const newChallenge: Challenge = {
-      id: Date.now().toString(),
-      title: newTitle.trim(),
-      emoji: newEmoji || "🎯",
-      description: newDesc.trim(),
-      completed: false,
-      isCustom: true,
-    };
-    update([...challenges, newChallenge]);
-    setNewTitle("");
-    setNewEmoji("🎯");
-    setNewDesc("");
-    setShowAdd(false);
+    await pushSync([{
+      operation: "INSERT",
+      entityType: "challenge",
+      clientId: Date.now(),
+      payload: JSON.stringify({
+        title: newTitle.trim(),
+        emoji: newEmoji || "🎯",
+        description: newDesc.trim(),
+        isCompleted: false,
+        isCustom: true,
+      }),
+    }]);
+    setNewTitle(""); setNewEmoji("🎯"); setNewDesc(""); setShowAdd(false);
+    await sync();
   };
-
-  const completed = challenges.filter((c) => c.completed);
-  const pending = challenges.filter((c) => !c.completed);
 
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
@@ -96,7 +81,6 @@ export default function ChallengesPage() {
           </button>
         </div>
 
-        {/* Progress bar */}
         <div className="mt-4">
           <div className="h-2 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.08)" }}>
             <div
@@ -113,7 +97,6 @@ export default function ChallengesPage() {
         </div>
       </div>
 
-      {/* Add custom challenge */}
       {showAdd && (
         <div className="glass-card-elevated rounded-2xl p-5">
           <h3 className="text-text-primary font-semibold mb-4">Nuevo reto personalizado</h3>
@@ -139,18 +122,10 @@ export default function ChallengesPage() {
               placeholder="Descripción (opcional)"
             />
             <div className="flex gap-2">
-              <button
-                onClick={addCustom}
-                className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all"
-                style={{ background: "#00B050", color: "#fff" }}
-              >
+              <button onClick={addCustom} className="flex-1 py-2.5 rounded-xl text-sm font-semibold" style={{ background: "#00B050", color: "#fff" }}>
                 Agregar
               </button>
-              <button
-                onClick={() => setShowAdd(false)}
-                className="px-4 py-2.5 rounded-xl text-sm transition-all hover:bg-white/5"
-                style={{ color: "rgba(255,255,255,0.55)" }}
-              >
+              <button onClick={() => setShowAdd(false)} className="px-4 py-2.5 rounded-xl text-sm hover:bg-white/5" style={{ color: "rgba(255,255,255,0.55)" }}>
                 Cancelar
               </button>
             </div>
@@ -158,7 +133,6 @@ export default function ChallengesPage() {
         </div>
       )}
 
-      {/* Pending challenges */}
       {pending.length > 0 && (
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "rgba(255,255,255,0.28)" }}>
@@ -167,7 +141,7 @@ export default function ChallengesPage() {
           <div className="space-y-3">
             {pending.map((c) => (
               <div key={c.id} className="glass-card rounded-2xl p-4 flex items-start gap-3">
-                <button onClick={() => toggle(c.id)} className="mt-0.5 flex-shrink-0">
+                <button onClick={() => toggle(c)} className="mt-0.5 flex-shrink-0">
                   <Circle size={20} style={{ color: "rgba(255,255,255,0.3)" }} />
                 </button>
                 <div className="flex-1">
@@ -175,12 +149,10 @@ export default function ChallengesPage() {
                     <span>{c.emoji}</span>
                     <p className="text-text-primary text-sm font-semibold">{c.title}</p>
                   </div>
-                  {c.description && (
-                    <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.40)" }}>{c.description}</p>
-                  )}
+                  {c.description && <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.40)" }}>{c.description}</p>}
                 </div>
                 {c.isCustom && (
-                  <button onClick={() => remove(c.id)} className="flex-shrink-0 hover:opacity-70 transition-opacity">
+                  <button onClick={() => remove(c)} className="flex-shrink-0 hover:opacity-70">
                     <X size={14} style={{ color: "rgba(255,255,255,0.3)" }} />
                   </button>
                 )}
@@ -190,7 +162,6 @@ export default function ChallengesPage() {
         </div>
       )}
 
-      {/* Completed challenges */}
       {completed.length > 0 && (
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "rgba(255,255,255,0.28)" }}>
@@ -198,12 +169,8 @@ export default function ChallengesPage() {
           </p>
           <div className="space-y-3">
             {completed.map((c) => (
-              <div
-                key={c.id}
-                className="rounded-2xl p-4 flex items-start gap-3"
-                style={{ background: "rgba(46,204,113,0.06)", border: "1px solid rgba(46,204,113,0.15)" }}
-              >
-                <button onClick={() => toggle(c.id)} className="mt-0.5 flex-shrink-0">
+              <div key={c.id} className="rounded-2xl p-4 flex items-start gap-3" style={{ background: "rgba(46,204,113,0.06)", border: "1px solid rgba(46,204,113,0.15)" }}>
+                <button onClick={() => toggle(c)} className="mt-0.5 flex-shrink-0">
                   <CheckCircle size={20} style={{ color: "#2ECC71" }} />
                 </button>
                 <div className="flex-1">
@@ -211,12 +178,10 @@ export default function ChallengesPage() {
                     <span>{c.emoji}</span>
                     <p className="text-sm font-semibold line-through" style={{ color: "rgba(255,255,255,0.4)" }}>{c.title}</p>
                   </div>
-                  {c.description && (
-                    <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.25)" }}>{c.description}</p>
-                  )}
+                  {c.description && <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.25)" }}>{c.description}</p>}
                 </div>
                 {c.isCustom && (
-                  <button onClick={() => remove(c.id)} className="flex-shrink-0 hover:opacity-70 transition-opacity">
+                  <button onClick={() => remove(c)} className="flex-shrink-0 hover:opacity-70">
                     <X size={14} style={{ color: "rgba(255,255,255,0.3)" }} />
                   </button>
                 )}
@@ -230,6 +195,7 @@ export default function ChallengesPage() {
         <div className="glass-card rounded-2xl p-12 text-center">
           <Trophy size={32} className="mx-auto mb-3" style={{ color: "rgba(255,255,255,0.2)" }} />
           <p className="text-text-muted text-sm">Sin retos</p>
+          <p className="text-text-muted text-xs mt-1">Los retos se sincronizan con tu cuenta</p>
         </div>
       )}
     </div>

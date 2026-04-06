@@ -39,6 +39,7 @@ export async function doSync(): Promise<SyncData> {
     transactions: mergeById(existing?.transactions || [], response.transactions),
     savingsGoals: mergeById(existing?.savingsGoals || [], response.savingsGoals),
     fixedExpenses: mergeById(existing?.fixedExpenses || [], response.fixedExpenses),
+    challenges: mergeById(existing?.challenges || [], response.challenges || []),
     lastSync: response.serverTime,
   };
 
