@@ -1,36 +1,136 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Vida Ordenada — Frontend Web
 
-## Getting Started
+Interfaz web moderna para gestionar finanzas personales, construida con Next.js 16 y React 19. Complementa la app Android con acceso desde cualquier dispositivo.
 
-First, run the development server:
+## Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+| Capa | Tecnología |
+|---|---|
+| Framework | Next.js 16.2.1 (App Router) |
+| Lenguaje | TypeScript 5 |
+| UI | React 19.2.4 |
+| Estilos | Tailwind CSS 4 + PostCSS |
+| HTTP client | Axios 1.14.0 con interceptores JWT |
+| Estado servidor | TanStack React Query 5.95.2 |
+| Gráficos | Recharts 3.8.1 |
+| Iconos | Lucide React 1.7.0 |
+| Utilidades | date-fns 4.1.0, js-cookie 3.0.5 |
+
+## Arquitectura
+
+```
+┌──────────────────────────────────────┐
+│           Next.js App                │
+│  (App Router — grupos (auth) y       │
+│   (dashboard) para rutas protegidas) │
+└─────────────┬────────────────────────┘
+              │
+    ┌─────────▼──────────┐
+    │  /api/backend/*    │  ← Proxy server-side (evita CORS)
+    └─────────┬──────────┘
+              │ HTTP/JWT
+              ▼
+    ┌──────────────────────────────────────┐
+    │   Backend REST API (Railway/Ktor)    │
+    └──────────────────────────────────────┘
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Las peticiones del cliente van a `/api/backend/*` (mismo origen), que actúa como proxy server-side hacia el backend real en Railway.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Estructura del proyecto
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+src/
+├── app/
+│   ├── (auth)/                 # Rutas públicas
+│   │   ├── login/              # Pantalla de login
+│   │   └── register/           # Pantalla de registro
+│   ├── (dashboard)/            # Rutas protegidas (requieren JWT)
+│   │   ├── dashboard/          # Dashboard principal con resumen
+│   │   ├── accounts/           # Gestión de cuentas bancarias
+│   │   ├── categories/         # Gestión de categorías
+│   │   ├── transactions/       # CRUD de transacciones
+│   │   ├── calendar/           # Vista calendario de movimientos
+│   │   ├── reports/            # Reportes y análisis 50/30/20
+│   │   ├── savings/            # Metas de ahorro
+│   │   ├── challenges/         # Desafíos financieros
+│   │   ├── fixed/              # Gastos fijos recurrentes
+│   │   └── settings/           # Configuración del usuario
+│   ├── api/backend/
+│   │   └── [...path]/
+│   │       └── route.ts        # Proxy catch-all hacia el backend real
+│   ├── layout.tsx              # Layout raíz con providers
+│   ├── page.tsx                # Landing page
+│   └── globals.css             # Estilos globales (Tailwind base)
+├── components/
+│   ├── layout/                 # Sidebar, TopBar
+│   ├── charts/                 # BarChart, DonutChart (Recharts)
+│   └── ui/                     # GlassCard, AmountDisplay, StatChip
+├── hooks/
+│   └── useSyncData.ts          # Hook de sincronización con servidor
+├── lib/
+│   ├── api.ts                  # Axios con interceptores JWT (auto-refresh)
+│   ├── auth.ts                 # Gestión de tokens (get/save/clear)
+│   ├── formatters.ts           # Formateo de montos y fechas
+│   └── sync.ts                 # Lógica de sincronización bidireccional
+├── providers/
+│   ├── AuthProvider.tsx        # Context de autenticación
+│   └── QueryProvider.tsx       # TanStack React Query provider
+└── types/
+    └── index.ts                # TypeScript interfaces y types
+```
 
-## Learn More
+## Features principales
 
-To learn more about Next.js, take a look at the following resources:
+### Dashboard
+- Resumen de patrimonio neto
+- Distribución de gastos (Fijos / Variables / Deudas / Inversión)
+- Últimas transacciones
+- Gráficos con Recharts (DonutChart, BarChart)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Gestión financiera
+- Transacciones (CRUD completo)
+- Cuentas bancarias múltiples
+- Categorías personalizables
+- Gastos fijos recurrentes
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Análisis
+- Regla 50/30/20 con progress bars
+- Reportes por categoría y por período
+- Vista calendario de movimientos
 
-## Deploy on Vercel
+### Metas y desafíos
+- Metas de ahorro con seguimiento de progreso
+- Desafíos financieros gamificados
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Autenticación
+- Login / Register con JWT
+- Interceptor Axios para adjuntar token automáticamente
+- Refresh automático cuando el access token expira
+- Context `AuthProvider` para estado global de sesión
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Variables de entorno
+
+```env
+NEXT_PUBLIC_API_URL=https://vidaordenadabe-production.up.railway.app
+```
+
+## Levantar en local
+
+```bash
+npm install
+npm run dev
+```
+
+Abre [http://localhost:3000](http://localhost:3000) en el navegador.
+
+## Proxy backend
+
+`src/app/api/backend/[...path]/route.ts` es un catch-all que reenvía todas las peticiones a `NEXT_PUBLIC_API_URL`. Esto permite que el frontend llame a `/api/backend/auth/login` en lugar del backend directamente, eliminando problemas de CORS y manteniendo la URL del backend fuera del bundle del cliente.
+
+## Repositorios relacionados
+
+| Proyecto | Repositorio |
+|---|---|
+| Android | [VidaOrdenada](https://github.com/EzeMaldo/vida_ordenada) |
+| Backend | [vida_ordenada_be](https://github.com/EzeMaldo/vida_ordenada_be) |
