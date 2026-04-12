@@ -1,8 +1,9 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/providers/AuthProvider";
 import { useSyncData } from "@/hooks/useSyncData";
-import { Settings, RefreshCcw, LogOut, User, Clock, Database, ChevronRight } from "lucide-react";
+import { generateWppToken } from "@/lib/api";
+import { RefreshCcw, LogOut, Clock, Database, ChevronRight, MessageCircle } from "lucide-react";
 
 function formatSyncTime(ts: number): string {
   if (!ts) return "Nunca";
@@ -21,6 +22,42 @@ export default function SettingsPage() {
   const { user, logout } = useAuth();
   const { data, syncing, lastSync, sync } = useSyncData();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  // ── WhatsApp token state ──────────────────────────────────────────────────
+  const [wppToken, setWppToken]       = useState<string | null>(null);
+  const [wppSecsLeft, setWppSecsLeft] = useState(0);
+  const [wppLoading, setWppLoading]   = useState(false);
+  const [wppError, setWppError]       = useState<string | null>(null);
+  const countdownRef                  = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const handleGenerateToken = async () => {
+    setWppLoading(true);
+    setWppError(null);
+    setWppToken(null);
+    try {
+      const res      = await generateWppToken();
+      const secsLeft = Math.max(0, Math.floor((res.expiresAt - Date.now()) / 1000));
+      setWppToken(res.token);
+      setWppSecsLeft(secsLeft);
+      if (countdownRef.current) clearInterval(countdownRef.current);
+      countdownRef.current = setInterval(() => {
+        setWppSecsLeft(s => {
+          if (s <= 1) {
+            clearInterval(countdownRef.current!);
+            setWppToken(null);
+            return 0;
+          }
+          return s - 1;
+        });
+      }, 1000);
+    } catch {
+      setWppError("No se pudo generar el código. Intentá de nuevo.");
+    } finally {
+      setWppLoading(false);
+    }
+  };
+
+  useEffect(() => () => { if (countdownRef.current) clearInterval(countdownRef.current); }, []);
 
   const stats = {
     accounts: data?.accounts.length || 0,
@@ -45,6 +82,61 @@ export default function SettingsPage() {
             <p className="text-text-primary text-lg font-bold">{user?.name || "Usuario"}</p>
             <p className="text-sm" style={{ color: "rgba(255,255,255,0.40)" }}>ID: {user?.userId?.slice(0, 8) || "—"}...</p>
           </div>
+        </div>
+      </div>
+
+      {/* WhatsApp Bot section */}
+      <div className="glass-card rounded-2xl overflow-hidden">
+        <div className="px-5 py-3.5" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+          <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "rgba(255,255,255,0.28)" }}>WhatsApp Bot</p>
+        </div>
+        <div className="px-5 py-5">
+          <div className="flex items-start gap-3 mb-4">
+            <MessageCircle size={18} style={{ color: "#25D366", marginTop: 2, flexShrink: 0 }} />
+            <div>
+              <p className="text-text-primary text-sm font-medium">Vincular Samu Bot</p>
+              <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.4)" }}>
+                Generá un código y enviáselo al bot de WhatsApp para vincular tu cuenta
+              </p>
+            </div>
+          </div>
+
+          {wppToken ? (
+            <div className="text-center space-y-3">
+              <p
+                className="text-4xl font-bold tracking-[0.3em]"
+                style={{ color: "#25D366", fontVariantNumeric: "tabular-nums" }}
+              >
+                {wppToken}
+              </p>
+              <p className="text-xs" style={{ color: "rgba(255,255,255,0.45)" }}>
+                Enviá este código al bot de WhatsApp
+              </p>
+              <span
+                className="inline-block px-3 py-1 rounded-lg text-xs font-semibold"
+                style={{
+                  background: wppSecsLeft > 15 ? "rgba(46,204,113,0.12)" : "rgba(255,77,109,0.12)",
+                  color: wppSecsLeft > 15 ? "#2ECC71" : "#FF4D6D"
+                }}
+              >
+                Expira en {wppSecsLeft}s
+              </span>
+            </div>
+          ) : (
+            <>
+              {wppError && (
+                <p className="text-xs mb-3" style={{ color: "#FF4D6D" }}>{wppError}</p>
+              )}
+              <button
+                onClick={handleGenerateToken}
+                disabled={wppLoading}
+                className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-50"
+                style={{ background: "rgba(37,211,102,0.12)", color: "#25D366", border: "1px solid rgba(37,211,102,0.25)" }}
+              >
+                {wppLoading ? "Generando..." : "Generar código"}
+              </button>
+            </>
+          )}
         </div>
       </div>
 

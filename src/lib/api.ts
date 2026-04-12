@@ -55,3 +55,8 @@ export async function pushSync(items: SyncPushItem[]): Promise<SyncPushResult[]>
   const { data } = await api.post<SyncPushResult[]>("/sync/push", items);
   return data;
 }
+
+export async function generateWppToken(): Promise<{ token: string; expiresAt: number }> {
+  const { data } = await api.post<{ token: string; expiresAt: number }>("/wpp/generate-token");
+  return data;
+}
