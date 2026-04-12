@@ -1,5 +1,6 @@
 import Sidebar from "@/components/layout/Sidebar";
 import TopBar from "@/components/layout/TopBar";
+import ChatWidget from "@/components/chat/ChatWidget";
 import { AuthProvider } from "@/providers/AuthProvider";
 import { SyncProvider } from "@/providers/SyncProvider";
 
@@ -16,6 +17,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </main>
           </div>
         </div>
+        <ChatWidget />
       </SyncProvider>
     </AuthProvider>
   );
