@@ -14,7 +14,7 @@ export default function ChatWidget() {
     {
       role: "assistant",
       content:
-        "¡Hola! Soy tu asistente financiero de Vida Ordenada 💚\n¿En qué puedo ayudarte hoy?",
+        "¡Hola! Soy Samu, tu asistente financiero 🐸\n¿En qué puedo ayudarte hoy?",
     },
   ]);
   const [input, setInput] = useState("");
@@ -74,9 +74,9 @@ export default function ChatWidget() {
       <button
         onClick={() => setOpen((v) => !v)}
         className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full flex items-center justify-center text-2xl shadow-lg border border-green-500/40 bg-gradient-to-br from-[#1a3a22] to-[#0f2018] hover:scale-105 transition-transform"
-        aria-label="Asistente financiero"
+        aria-label="Samu — Asistente financiero"
       >
-        {open ? "✕" : "🤖"}
+        {open ? "✕" : "🐸"}
       </button>
 
       {/* ── Panel de chat ────────────────────────────────────────── */}
@@ -87,13 +87,11 @@ export default function ChatWidget() {
           {/* Header */}
           <div className="flex items-center gap-3 px-4 py-3 border-b border-white/10 bg-[#0d2018]">
             <div className="w-9 h-9 rounded-full flex items-center justify-center text-lg border border-green-500/30 bg-green-900/30">
-              🤖
+              🐸
             </div>
             <div>
-              <p className="text-sm font-bold text-white leading-none">
-                Asistente Financiero
-              </p>
-              <p className="text-xs text-green-400 mt-0.5">Vida Ordenada IA</p>
+              <p className="text-sm font-bold text-white leading-none">Samu</p>
+              <p className="text-xs text-green-400 mt-0.5">Asistente financiero · Vida Ordenada</p>
             </div>
           </div>
 
@@ -106,7 +104,7 @@ export default function ChatWidget() {
               >
                 {msg.role === "assistant" && (
                   <div className="w-7 h-7 shrink-0 rounded-full flex items-center justify-center text-sm border border-green-500/25 bg-green-900/20 mt-0.5">
-                    🤖
+                    🐸
                   </div>
                 )}
                 <div
@@ -124,7 +122,7 @@ export default function ChatWidget() {
             {loading && (
               <div className="flex justify-start gap-2">
                 <div className="w-7 h-7 shrink-0 rounded-full flex items-center justify-center text-sm border border-green-500/25 bg-green-900/20">
-                  🤖
+                  🐸
                 </div>
                 <div className="bg-[#0f2018] border border-white/8 rounded-2xl rounded-tl-sm px-4 py-3">
                   <span className="flex gap-1">

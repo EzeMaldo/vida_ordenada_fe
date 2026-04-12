@@ -2,8 +2,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/providers/AuthProvider";
 import { useSyncData } from "@/hooks/useSyncData";
-import { generateWppToken } from "@/lib/api";
-import { RefreshCcw, LogOut, Clock, Database, ChevronRight, MessageCircle } from "lucide-react";
+import { generateWppToken, changePassword } from "@/lib/api";
+import { RefreshCcw, LogOut, Clock, Database, ChevronRight, MessageCircle, Lock, Eye, EyeOff } from "lucide-react";
 
 function formatSyncTime(ts: number): string {
   if (!ts) return "Nunca";
@@ -22,6 +22,41 @@ export default function SettingsPage() {
   const { user, logout } = useAuth();
   const { data, syncing, lastSync, sync } = useSyncData();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  // ── Change password state ─────────────────────────────────────────────────
+  const [showChangePw, setShowChangePw]     = useState(false);
+  const [oldPw, setOldPw]                   = useState("");
+  const [newPw, setNewPw]                   = useState("");
+  const [showOldPw, setShowOldPw]           = useState(false);
+  const [showNewPw, setShowNewPw]           = useState(false);
+  const [changePwLoading, setChangePwLoading] = useState(false);
+  const [changePwError, setChangePwError]   = useState("");
+  const [changePwSuccess, setChangePwSuccess] = useState(false);
+
+  const handleChangePassword = async () => {
+    if (!oldPw) { setChangePwError("Ingresá tu contraseña actual"); return; }
+    if (newPw.length < 6) { setChangePwError("Mínimo 6 caracteres"); return; }
+    setChangePwLoading(true);
+    setChangePwError("");
+    try {
+      await changePassword(oldPw, newPw);
+      setChangePwSuccess(true);
+      setOldPw("");
+      setNewPw("");
+    } catch {
+      setChangePwError("Contraseña actual incorrecta");
+    } finally {
+      setChangePwLoading(false);
+    }
+  };
+
+  const closeChangePw = () => {
+    setShowChangePw(false);
+    setOldPw("");
+    setNewPw("");
+    setChangePwError("");
+    setChangePwSuccess(false);
+  };
 
   // ── WhatsApp token state ──────────────────────────────────────────────────
   const [wppToken, setWppToken]       = useState<string | null>(null);
@@ -191,6 +226,73 @@ export default function SettingsPage() {
               <p className="text-text-primary text-sm font-semibold">{value}</p>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Change password section */}
+      <div className="glass-card rounded-2xl overflow-hidden">
+        <div className="px-5 py-3.5" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+          <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "rgba(255,255,255,0.28)" }}>Seguridad</p>
+        </div>
+        <div className="px-5 py-4">
+          {!showChangePw ? (
+            <button onClick={() => setShowChangePw(true)} className="flex items-center gap-3 w-full transition-all">
+              <Lock size={16} style={{ color: "rgba(255,255,255,0.55)" }} />
+              <p className="text-sm font-medium text-text-primary">Cambiar contraseña</p>
+              <ChevronRight size={14} className="ml-auto" style={{ color: "rgba(255,255,255,0.28)" }} />
+            </button>
+          ) : changePwSuccess ? (
+            <div className="space-y-3 text-center">
+              <p className="text-2xl">✅</p>
+              <p className="text-text-primary text-sm font-semibold">¡Contraseña actualizada!</p>
+              <button onClick={closeChangePw}
+                className="w-full py-2.5 rounded-xl text-sm font-semibold"
+                style={{ background: "#00B050", color: "#fff" }}>
+                Listo
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm font-semibold text-text-primary mb-1">Cambiar contraseña</p>
+              {/* Contraseña actual */}
+              <div className="relative">
+                <input type={showOldPw ? "text" : "password"} value={oldPw}
+                  onChange={(e) => setOldPw(e.target.value)}
+                  placeholder="Contraseña actual"
+                  className="w-full rounded-xl px-4 py-3 pr-11 text-sm focus:outline-none"
+                  style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.10)", color: "#fff" }} />
+                <button type="button" onClick={() => setShowOldPw(!showOldPw)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: "rgba(255,255,255,0.4)" }}>
+                  {showOldPw ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+              </div>
+              {/* Nueva contraseña */}
+              <div className="relative">
+                <input type={showNewPw ? "text" : "password"} value={newPw}
+                  onChange={(e) => setNewPw(e.target.value)}
+                  placeholder="Nueva contraseña (mín. 6 caracteres)"
+                  className="w-full rounded-xl px-4 py-3 pr-11 text-sm focus:outline-none"
+                  style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.10)", color: "#fff" }} />
+                <button type="button" onClick={() => setShowNewPw(!showNewPw)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: "rgba(255,255,255,0.4)" }}>
+                  {showNewPw ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+              </div>
+              {changePwError && <p className="text-xs" style={{ color: "#FF4D6D" }}>{changePwError}</p>}
+              <div className="flex gap-2 pt-1">
+                <button onClick={closeChangePw}
+                  className="flex-1 py-2.5 rounded-xl text-sm"
+                  style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.55)" }}>
+                  Cancelar
+                </button>
+                <button onClick={handleChangePassword} disabled={changePwLoading}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
+                  style={{ background: "#00B050", color: "#fff" }}>
+                  {changePwLoading ? "Guardando..." : "Actualizar"}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

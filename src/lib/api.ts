@@ -60,3 +60,20 @@ export async function generateWppToken(): Promise<{ token: string; expiresAt: nu
   const { data } = await api.post<{ token: string; expiresAt: number }>("/wpp/generate-token");
   return data;
 }
+
+export async function loginWithGoogle(idToken: string): Promise<AuthTokens> {
+  const { data } = await api.post<AuthTokens>('/auth/google', { idToken });
+  return data;
+}
+
+export async function forgotPassword(email: string): Promise<void> {
+  await api.post('/auth/forgot-password', { email });
+}
+
+export async function resetPassword(email: string, code: string, newPassword: string): Promise<void> {
+  await api.post('/auth/reset-password', { email, code, newPassword });
+}
+
+export async function changePassword(oldPassword: string, newPassword: string): Promise<void> {
+  await api.post('/auth/change-password', { oldPassword, newPassword });
+}
