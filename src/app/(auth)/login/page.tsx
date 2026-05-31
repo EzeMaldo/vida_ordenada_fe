@@ -2,7 +2,7 @@
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { login, loginWithGoogle, forgotPassword, resetPassword } from "@/lib/api";
+import { login, loginWithGoogle, forgotPassword } from "@/lib/api";
 import { saveTokens } from "@/lib/auth";
 import { doSync } from "@/lib/sync";
 import { Eye, EyeOff } from "lucide-react";
@@ -22,7 +22,7 @@ declare global {
   }
 }
 
-type ForgotStep = "email" | "code";
+type ForgotStep = "email" | "temp-password";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -38,8 +38,8 @@ export default function LoginPage() {
   const [showForgot, setShowForgot]         = useState(false);
   const [forgotStep, setForgotStep]         = useState<ForgotStep>("email");
   const [forgotEmail, setForgotEmail]       = useState("");
-  const [forgotCode, setForgotCode]         = useState("");
-  const [forgotPw, setForgotPw]             = useState("");
+  const [forgotTempPw, setForgotTempPw]     = useState("");
+  const [forgotShowPw, setForgotShowPw]     = useState(false);
   const [forgotLoading, setForgotLoading]   = useState(false);
   const [forgotError, setForgotError]       = useState("");
   const [forgotSuccess, setForgotSuccess]   = useState(false);
@@ -101,30 +101,32 @@ export default function LoginPage() {
     document.head.appendChild(script);
   }, [handleGoogleResponse]);
 
-  const handleForgotSendCode = async () => {
+  const handleForgotSendTempPw = async () => {
     if (!forgotEmail) { setForgotError("Ingresá tu email"); return; }
     setForgotLoading(true);
     setForgotError("");
     try {
       await forgotPassword(forgotEmail);
-      setForgotStep("code");
+      setForgotStep("temp-password");
     } catch {
-      setForgotError("No se pudo enviar el código");
+      setForgotError("No se pudo enviar el email. Verificá tu conexión.");
     } finally {
       setForgotLoading(false);
     }
   };
 
-  const handleForgotReset = async () => {
-    if (forgotCode.length !== 6) { setForgotError("El código tiene 6 dígitos"); return; }
-    if (forgotPw.length < 6)     { setForgotError("Mínimo 6 caracteres"); return; }
+  const handleForgotValidate = async () => {
+    if (!forgotTempPw) { setForgotError("Ingresá la contraseña temporal"); return; }
     setForgotLoading(true);
     setForgotError("");
     try {
-      await resetPassword(forgotEmail, forgotCode, forgotPw);
-      setForgotSuccess(true);
+      const tokens = await login(forgotEmail, forgotTempPw);
+      saveTokens(tokens);
+      closeForgot();
+      await doSync();
+      router.replace("/dashboard");
     } catch {
-      setForgotError("Código inválido o expirado");
+      setForgotError("Contraseña incorrecta. Revisá el email o solicitá una nueva.");
     } finally {
       setForgotLoading(false);
     }
@@ -134,8 +136,8 @@ export default function LoginPage() {
     setShowForgot(false);
     setForgotStep("email");
     setForgotEmail("");
-    setForgotCode("");
-    setForgotPw("");
+    setForgotTempPw("");
+    setForgotShowPw(false);
     setForgotError("");
     setForgotSuccess(false);
   };
@@ -244,21 +246,10 @@ export default function LoginPage() {
           <div className="w-full max-w-sm rounded-2xl p-6"
             style={{ background: "#0a1810", border: "1px solid rgba(255,255,255,0.1)" }}>
 
-            {forgotSuccess ? (
-              <div className="text-center space-y-4">
-                <div className="text-4xl">✅</div>
-                <p className="text-text-primary font-semibold">¡Contraseña actualizada!</p>
-                <p className="text-text-secondary text-sm">Ya podés ingresar con tu nueva contraseña.</p>
-                <button onClick={closeForgot}
-                  className="w-full py-3 rounded-xl text-sm font-semibold"
-                  style={{ background: "#00B050", color: "#fff" }}>
-                  Volver al inicio
-                </button>
-              </div>
-            ) : forgotStep === "email" ? (
+            {forgotStep === "email" ? (
               <>
                 <h2 className="text-text-primary font-bold text-lg mb-1">Recuperar contraseña</h2>
-                <p className="text-text-secondary text-sm mb-5">Te enviamos un código de 6 dígitos a tu email.</p>
+                <p className="text-text-secondary text-sm mb-5">Te enviamos una contraseña temporal a tu email.</p>
                 <div className="space-y-4">
                   <input type="email" value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)}
                     className="w-full rounded-xl px-4 py-3 text-sm focus:outline-none"
@@ -269,42 +260,47 @@ export default function LoginPage() {
                       style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.55)" }}>
                       Cancelar
                     </button>
-                    <button onClick={handleForgotSendCode} disabled={forgotLoading}
+                    <button onClick={handleForgotSendTempPw} disabled={forgotLoading}
                       className="flex-1 py-3 rounded-xl text-sm font-semibold disabled:opacity-50"
                       style={{ background: "#00B050", color: "#fff" }}>
-                      {forgotLoading ? "Enviando..." : "Enviar código"}
+                      {forgotLoading ? "Enviando..." : "Enviar"}
                     </button>
                   </div>
                 </div>
               </>
             ) : (
               <>
-                <h2 className="text-text-primary font-bold text-lg mb-1">Ingresá el código</h2>
-                <p className="text-text-secondary text-sm mb-5">Revisá tu email <strong>{forgotEmail}</strong></p>
+                <h2 className="text-text-primary font-bold text-lg mb-1">Ingresá tu contraseña temporal</h2>
+                <p className="text-text-secondary text-sm mb-5">
+                  Revisá tu email <strong>{forgotEmail}</strong> y escribí la contraseña que te enviamos.
+                </p>
                 <div className="space-y-4">
-                  <input type="text" value={forgotCode} onChange={(e) => setForgotCode(e.target.value)}
-                    className="w-full rounded-xl px-4 py-3 text-sm text-center tracking-[0.3em] font-bold focus:outline-none"
-                    style={inputStyle} placeholder="000000" maxLength={6} />
                   <div className="relative">
-                    <input type={showPw ? "text" : "password"} value={forgotPw}
-                      onChange={(e) => setForgotPw(e.target.value)}
+                    <input
+                      type={forgotShowPw ? "text" : "password"}
+                      value={forgotTempPw}
+                      onChange={(e) => setForgotTempPw(e.target.value)}
                       className="w-full rounded-xl px-4 py-3 pr-11 text-sm focus:outline-none"
-                      style={inputStyle} placeholder="Nueva contraseña" />
-                    <button type="button" onClick={() => setShowPw(!showPw)}
+                      style={inputStyle}
+                      placeholder="Contraseña temporal"
+                    />
+                    <button type="button" onClick={() => setForgotShowPw(!forgotShowPw)}
                       className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: "rgba(255,255,255,0.4)" }}>
-                      {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                      {forgotShowPw ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                   </div>
                   {forgotError && <p className="text-sm" style={{ color: "#FF4D6D" }}>{forgotError}</p>}
                   <div className="flex gap-2">
-                    <button onClick={closeForgot} className="flex-1 py-3 rounded-xl text-sm"
+                    <button
+                      onClick={() => { setForgotStep("email"); setForgotTempPw(""); setForgotError(""); }}
+                      className="flex-1 py-3 rounded-xl text-sm"
                       style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.55)" }}>
-                      Cancelar
+                      Solicitar nueva
                     </button>
-                    <button onClick={handleForgotReset} disabled={forgotLoading}
+                    <button onClick={handleForgotValidate} disabled={forgotLoading}
                       className="flex-1 py-3 rounded-xl text-sm font-semibold disabled:opacity-50"
                       style={{ background: "#00B050", color: "#fff" }}>
-                      {forgotLoading ? "Guardando..." : "Actualizar"}
+                      {forgotLoading ? "Ingresando..." : "Ingresar"}
                     </button>
                   </div>
                 </div>

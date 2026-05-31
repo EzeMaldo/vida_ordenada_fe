@@ -53,7 +53,7 @@ export default function SettingsPage() {
 
   const handleChangePassword = async () => {
     if (!oldPw) { setChangePwError("Ingresá tu contraseña actual"); return; }
-    if (newPw.length < 6) { setChangePwError("Mínimo 6 caracteres"); return; }
+    if (newPw.length < 8) { setChangePwError("La nueva contraseña debe tener al menos 8 caracteres"); return; }
     setChangePwLoading(true);
     setChangePwError("");
     try {
@@ -288,7 +288,7 @@ export default function SettingsPage() {
               <div className="relative">
                 <input type={showNewPw ? "text" : "password"} value={newPw}
                   onChange={(e) => setNewPw(e.target.value)}
-                  placeholder="Nueva contraseña (mín. 6 caracteres)"
+                  placeholder="Nueva contraseña (mín. 8 caracteres)"
                   className="w-full rounded-xl px-4 py-3 pr-11 text-sm focus:outline-none"
                   style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.10)", color: "#fff" }} />
                 <button type="button" onClick={() => setShowNewPw(!showNewPw)}
