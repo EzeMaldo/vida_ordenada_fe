@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/providers/AuthProvider";
 import { useSyncData } from "@/hooks/useSyncData";
 import { generateWppToken, changePassword } from "@/lib/api";
-import { RefreshCcw, LogOut, Clock, Database, ChevronRight, MessageCircle, Lock, Eye, EyeOff } from "lucide-react";
+import { RefreshCcw, LogOut, Clock, Database, ChevronRight, MessageCircle, Lock, Eye, EyeOff, Trash2 } from "lucide-react";
 
 function formatSyncTime(ts: number): string {
   if (!ts) return "Nunca";
@@ -19,9 +19,27 @@ function formatSyncTime(ts: number): string {
 }
 
 export default function SettingsPage() {
-  const { user, logout } = useAuth();
+  const { user, logout, deleteAccount } = useAuth();
   const { data, syncing, lastSync, sync } = useSyncData();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  // ── Delete account state ──────────────────────────────────────────────────
+  const [showDeleteStep1, setShowDeleteStep1]     = useState(false);
+  const [showDeleteStep2, setShowDeleteStep2]     = useState(false);
+  const [deleteLoading, setDeleteLoading]         = useState(false);
+  const [deleteError, setDeleteError]             = useState<string | null>(null);
+
+  const handleDeleteAccount = async () => {
+    setDeleteLoading(true);
+    setDeleteError(null);
+    try {
+      await deleteAccount();
+    } catch {
+      setDeleteLoading(false);
+      setDeleteError("No se pudo eliminar la cuenta. Intentá de nuevo.");
+      setShowDeleteStep2(false);
+    }
+  };
 
   // ── Change password state ─────────────────────────────────────────────────
   const [showChangePw, setShowChangePw]     = useState(false);
@@ -302,7 +320,8 @@ export default function SettingsPage() {
           <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "rgba(255,255,255,0.28)" }}>Cuenta</p>
         </div>
 
-        <div className="px-5 py-4">
+        {/* Cerrar sesión */}
+        <div className="px-5 py-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
           {!showLogoutConfirm ? (
             <button
               onClick={() => setShowLogoutConfirm(true)}
@@ -331,6 +350,75 @@ export default function SettingsPage() {
                   style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.55)" }}
                 >
                   Cancelar
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Eliminar cuenta */}
+        <div className="px-5 py-4">
+          {deleteError && (
+            <p className="text-xs mb-3" style={{ color: "#FF4D6D" }}>{deleteError}</p>
+          )}
+          {!showDeleteStep1 && !showDeleteStep2 ? (
+            <button
+              onClick={() => { setDeleteError(null); setShowDeleteStep1(true); }}
+              className="flex items-center gap-3 w-full transition-all"
+            >
+              <Trash2 size={16} style={{ color: "#FF4D6D" }} />
+              <div className="text-left">
+                <p className="text-sm font-medium" style={{ color: "#FF4D6D" }}>Eliminar cuenta</p>
+                <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.35)" }}>Elimina permanentemente tu cuenta y todos tus datos</p>
+              </div>
+              <ChevronRight size={14} className="ml-auto" style={{ color: "rgba(255,77,109,0.4)" }} />
+            </button>
+          ) : showDeleteStep1 ? (
+            <div className="space-y-3">
+              <p className="text-sm font-semibold" style={{ color: "#FF4D6D" }}>¿Eliminar tu cuenta?</p>
+              <p className="text-xs leading-relaxed" style={{ color: "rgba(255,255,255,0.6)" }}>
+                Esta acción es irreversible. Se eliminarán permanentemente tu cuenta y todos tus datos:
+                transacciones, cuentas, categorías, metas y desafíos.
+              </p>
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={() => setShowDeleteStep1(false)}
+                  className="flex-1 py-2.5 rounded-xl text-sm transition-all"
+                  style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.55)" }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => { setShowDeleteStep1(false); setShowDeleteStep2(true); }}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all"
+                  style={{ background: "rgba(255,77,109,0.15)", color: "#FF4D6D", border: "1px solid rgba(255,77,109,0.3)" }}
+                >
+                  Continuar
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm font-semibold" style={{ color: "#FF4D6D" }}>¿Estás completamente seguro?</p>
+              <p className="text-xs leading-relaxed" style={{ color: "rgba(255,255,255,0.6)" }}>
+                No podrás recuperar tu cuenta ni tus datos. Esta acción no se puede deshacer.
+              </p>
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={() => setShowDeleteStep2(false)}
+                  disabled={deleteLoading}
+                  className="flex-1 py-2.5 rounded-xl text-sm transition-all disabled:opacity-50"
+                  style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.55)" }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleDeleteAccount}
+                  disabled={deleteLoading}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-50"
+                  style={{ background: "#FF4D6D", color: "#fff" }}
+                >
+                  {deleteLoading ? "Eliminando..." : "Eliminar para siempre"}
                 </button>
               </div>
             </div>

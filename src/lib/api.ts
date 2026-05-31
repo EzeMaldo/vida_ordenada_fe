@@ -77,3 +77,7 @@ export async function resetPassword(email: string, code: string, newPassword: st
 export async function changePassword(oldPassword: string, newPassword: string): Promise<void> {
   await api.post('/auth/change-password', { oldPassword, newPassword });
 }
+
+export async function deleteAccount(): Promise<void> {
+  await api.delete('/auth/account');
+}

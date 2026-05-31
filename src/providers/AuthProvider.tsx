@@ -1,15 +1,17 @@
 "use client";
 import { createContext, useContext, useEffect, useState } from "react";
 import { getUser, isLoggedIn, clearTokens } from "@/lib/auth";
+import { deleteAccount as apiDeleteAccount } from "@/lib/api";
 import { useRouter } from "next/navigation";
 
 interface AuthCtx {
   user: { userId: string; name: string } | null;
   logout: () => void;
   refresh: () => void;
+  deleteAccount: () => Promise<void>;
 }
 
-const Ctx = createContext<AuthCtx>({ user: null, logout: () => {}, refresh: () => {} });
+const Ctx = createContext<AuthCtx>({ user: null, logout: () => {}, refresh: () => {}, deleteAccount: async () => {} });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<{ userId: string; name: string } | null>(null);
@@ -32,7 +34,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.replace("/login");
   };
 
-  return <Ctx.Provider value={{ user, logout, refresh }}>{children}</Ctx.Provider>;
+  const deleteAccount = async () => {
+    await apiDeleteAccount();
+    clearTokens();
+    setUser(null);
+    router.replace("/login");
+  };
+
+  return <Ctx.Provider value={{ user, logout, refresh, deleteAccount }}>{children}</Ctx.Provider>;
 }
 
 export const useAuth = () => useContext(Ctx);
